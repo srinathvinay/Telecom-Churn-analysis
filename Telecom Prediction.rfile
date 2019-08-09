@@ -1,0 +1,805 @@
+Telecom Churn Analysis – Objective :
+
+Churn Rate Prediction and Targeting the Customers who are likely Willing to Close account With Mobicom with Proactive Retention Strategies and Offers.
+
+Reporting to Senior management as an Business analyst about the Data Insights and Recommendations relating to Subscriber Churn Based on past Survey Reports.
+
+
+Project Done using R statistical Tool.
+
+Loading the Required Libraries for this Capstone
+
+library(dplyr)
+library(readxl)
+library(caret)
+library(ggplot2)
+library(lattice)
+
+library(dataQualityR)
+
+
+# Setting the Working Directory
+
+setwd("G:/DATA SCIENCE/CAPSTONE PROJECT/DATA SET FINAL")
+getwd()
+
+# Reading the Data set
+
+telecom=read.csv("telecomfinal.csv",stringsAsFactors = FALSE)
+view(telecom)
+
+# Checking the data with Numerical and categorical Values Seperately
+
+checkDataQuality(data = telecom,out.file.num = "numerical.csv",out.file.cat = "categorical.csv")
+numerical=read.csv("numerical.csv",stringsAsFactors = FALSE)
+categorical=read.csv("categorical.csv",stringsAsFactors = FALSE)
+
+# Checking the Class of the Dataset
+
+class(numerical)
+
+# Checking the Summary Statistics of the Dataset
+
+
+summary(numerical)
+summary(head(numerical))
+
+#checking the missing values
+
+is.na(telecom)
+
+# Identifying the Column Names
+
+colnames(telecom)
+
+# Getting the Number of Columns which having Count of Missing Values
+
+colSums(is.na(telecom))
+
+# Identifying the Position of the Column Name
+
+# Dropping out the Missing Value having more than 15 % datas Missing in a Dataset and saving in the same Dataset
+
+which( colnames(telecom)=="numbcars" )
+telecom=telecom[,-52]
+
+which( colnames(telecom)=="dwlltype" )
+telecom=telecom[,-46]
+
+which( colnames(telecom)=="dwllsize" )
+telecom=telecom[,-46]
+
+which( colnames(telecom)=="mailordr" )
+telecom=telecom[,-46]
+
+which( colnames(telecom)=="occu1" )
+telecom=telecom[,-46]
+
+which( colnames(telecom)=="wrkwoman" )
+telecom=telecom[,-50]
+
+which( colnames(telecom)=="solflag" )
+telecom=telecom[,-55]
+
+which( colnames(telecom)=="proptype" )
+telecom=telecom[,-55]
+
+which( colnames(telecom)=="mailresp" )
+telecom=telecom[,-55]
+
+which( colnames(telecom)=="cartype" )
+telecom=telecom[,-55]
+
+which( colnames(telecom)=="children" )
+
+telecom=telecom[,-56]
+
+which( colnames(telecom)=="csa" )
+telecom=telecom[,-56]
+
+which( colnames(telecom)=="div_type" )
+
+telecom=telecom[,-60]
+
+which( colnames(telecom)=="car_buy" )
+
+telecom=telecom[,-55]
+
+which( colnames(telecom)=="ethnic" )
+telecom=telecom[,-38]
+
+which( colnames(telecom)=="area" )
+telecom=telecom[,-34]
+
+
+# Knowing any of the column having Missing Values
+
+sapply(telecom, function(x)all(any(is.na(x))))
+       
+colnames(telecom)[ apply(telecom, 2, anyNA) ]
+
+names(which(sapply(telecom, function(x) any(is.na(x)))))
+
+# Deleting some of the required categorical variable columns Missing Values (i.e deleting the rows which the Column having Missing Values)
+
+sum(is.na(telecom$area))
+
+# Dont use na.omit here (tele=na.omit(object = telecom,cols="area"))
+
+which( colnames(telecom)=="area" )
+
+tel=telecom[!is.na(telecom$area),]
+
+teloo=telecom[complete.cases(telecom$prizm_social_one), ]
+
+# Deleting the Rows that the Column having Missing Values (i.e Multiple Columns)
+
+
+which( colnames(telecom)=="prizm_social_one" )
+
+which( colnames(teloo)=="refurb_new" )
+
+which( colnames(teloo)=="hnd_webcap" )
+
+which( colnames(teloo)=="marital" )
+
+teloo=telecom[complete.cases(telecom[,c(34,35,36)]),]
+
+which(is.na(teloo$prizm_social_one))
+
+# converting INcome variable as a Factor and deleting the Missing Values
+
+teloo$income=as.factor(teloo$income)
+
+
+class(teloo$income)  
+
+which( colnames(teloo)=="income" )
+
+
+teloo=telecom[complete.cases(telecom[c(12)]),]
+dim(teloo)
+
+
+# DELETING THE HND_WEB MISSING VALUES ROWS IN A DATASET
+
+colSums(is.na(teloo))
+
+which( colnames(teloo)=="hnd_webcap" )
+
+tel1=teloo[complete.cases(teloo[c(35)]),]
+
+
+which( colnames(tel1)=="prizm_social_one" )
+
+tel2=tel1[complete.cases(tel1[c(33)]),]
+
+# Replacing the Missing values for Ret_Days Column in a New column RET_DAYS1 COLUMN IN A DATASET(i.e NA values assigned to be 0 and Numeric values assigned to be 1)
+
+which( colnames(tel2)=="retdays" )
+
+which(is.na(tel2$retdays))
+
+tel2$retdays1=ifelse(is.na(tel2$retdays=="TRUE"),0,1)
+tel2$retdays1
+class(tel2$retdays)
+
+as.character(tel2$retdays)
+str(tel2$retdays)
+
+unique(telecom$models)
+
+# Now deleting the Retdays Old column.
+
+which( colnames(tel2)=="retdays" )
+tel2=tel2[,-46]
+
+colnames(tel2)[ apply(tel2, 2, anyNA) ]
+
+str(tel2)
+
+
+# Imputing missing values
+
+list_na <- colnames(tel2)[ apply(tel2, 2, anyNA) ]
+list_na
+
+average_missing <- apply(tel2[,colnames(tel2) %in% list_na],
+                         2,
+                         mean,
+                         na.rm =  TRUE)
+dim(tel2)
+colSums(is.na(tel2))
+
+
+# Using For Loop for Imputing Missing Values
+    
+ i=1   
+    for(i in 1:ncol(tel2)){
+      tel2[is.na(tel2[,i]), i] <- mean(tel2[,i], na.rm = TRUE)
+    }
+    
+tel2$mou_Mean[is.na(tel2$mou_Mean)] <- round(mean(tel2$mou_Mean, na.rm = TRUE))
+colSums(is.na(tel2))
+
+# Churn target Variable converting to factor From Numerical
+
+tel2$churn=as.factor(tel2$churn)
+class(tel2$churn)
+
+colSums(is.na(tel2))
+
+checkDataQuality(data = tel2,out.file.num = "numerical.csv",out.file.cat = "categorical.csv")
+
+# Changing the Numerical Variables that shown in Numerical Report to Categorical Variables
+
+#forgntvl
+#mtrcycle
+#truck
+#actvsubs
+#income
+#uniqsubs
+#models
+#hnd_price
+#retdays
+#churn
+
+tel2$forgntvl=as.factor(tel2$forgntvl)
+class(tel2$forgntvl)
+tel2$mtrcycle=as.factor(tel2$mtrcycle)
+tel2$truck=as.factor(tel2$truck)
+tel2$actvsubs=as.factor(tel2$actvsubs)
+tel2$income=as.factor(tel2$income)
+tel2$uniqsubs=as.factor(tel2$uniqsubs)
+tel2$models=as.factor(tel2$models)
+tel2$hnd_price=as.factor(tel2$hnd_price)
+tel2$retdays1=as.factor(tel2$retdays1)
+class(tel2$retdays1)
+tel2$churn=as.factor(tel2$churn)
+class(tel2$churn)
+checkDataQuality(data = tel2,out.file.num = "numeric.csv",out.file.cat = "categoric.csv")
+class(tel2$Customer_ID)
+
+# Outlier Treatment for Numerical Variables
+
+# Plotting outliers for numerical variables using Box Plots
+
+par(mfrow=c(5,11))
+par(mar=c(1,1,1,1))
+
+numericalcols=names(numerica)
+numericalcols
+
+i=1
+
+plot.new()
+for(i in 1:length(numericalcols))
+{
+  boxplot(numerica[,numericalcols[i]],main=numericalcols[i],col = "Green")
+}
+
+plot.new()
+
+for(i in 1:length(numericalcols))
+{
+  plot(numerica[,numericalcols[i]],main=numericalcols[i])
+}
+
+# Imputing the Outliers with 99 % percentile values for the Numerica Data set
+
+i=1
+for(i in 1:length(numericalcols))
+{
+  x<-boxplot(numerica[,numericalcols[i]],main=numericalcols[i],col = "Green")
+  out<-x$out
+  index<-which(numerica[,numericalcols[i]]%in% x$out)
+  numerica[index,numericalcols[i]]<-quantile(numerica[,numericalcols[i]],0.99)
+  rm(x)
+  rm(out)
+}
+
+plot.new()
+
+for(i in 1:length(numericalcols))
+{
+  boxplot(numerica[,numericalcols[i]],main=numericalcols[i])
+}  
+
+
+# Plots GGplots for categorical Variables
+
+library(ggplot2)
+
+exp1 <- ggplot(Ftrain1, aes(income, fill = churn)) + geom_bar(position = "fill") + labs(x = "Income", y = "ChurnRate") + theme(legend.position = "Green") + coord_flip()
+exp2 <- ggplot(Ftrain1, aes(hnd_price, fill = churn)) + geom_bar(position = "fill") + labs(x = "hnd_price", y = "ChurnRate") + theme(legend.position = "Green") + coord_flip()
+exp3 <- ggplot(Ftrain1, aes(uniqsubs, fill = churn)) + geom_bar(position = "fill") + labs(x = "uniqsubs", y = "ChurnRate") + theme(legend.position = "Green") + coord_flip()
+exp4 <- ggplot(Ftrain1, aes(retdays1, fill = churn)) + geom_bar(position = "fill") + labs(x = "Retdays", y = "ChurnRate") + theme(legend.position = "Green") + coord_flip()
+grid.arrange(exp1,exp2,exp3,exp4, ncol=1,nrow=4, top="Churn/Non-churn Proportion")
+library(gridExtra)
+
+# ggplots for Continous Variables
+
+exp5 <- ggplot(Ftrain1, aes(churn, mou_Mean, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+exp6 <- ggplot(Ftrain1, aes(churn, totmrc_Mean, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+exp7 <- ggplot(Ftrain1, aes(churn, rev_Range, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+exp8 <- ggplot(Ftrain1, aes(churn, mou_Range, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+colnames(Ftrain1)
+exp9 <- ggplot(Ftrain1, aes(churn, drop_vce_Mean, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+exp10 <- ggplot(Ftrain1, aes(churn, avgrev, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+exp11 <- ggplot(Ftrain1, aes(churn, avg3qty, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+exp12 <- ggplot(Ftrain1, aes(churn, totrev, fill = churn )) + geom_boxplot(aplha = 0.8) + theme(legend.position = "null")
+
+grid.arrange(exp5, exp6, exp10,exp11,exp12, ncol=3, nrow=2, top="Distribution of Continuous Variable")
+
+
+# Checking for Data Distribution and skewness for the Numerical Dataset
+
+library(purrr)
+library(tidyr)
+library(ggplot2)
+
+numerica %>%
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+  facet_wrap(~ key, scales = "free") +
+  geom_histogram()
+
+# Seperating the Numerical and Categorical Data Set Seperatley
+
+telnumeric=c("mou_Mean","totmrc_Mean","rev_Range","mou_Range","change_mou","drop_blk_Mean","drop_vce_Range","owylis_vce_Range","mou_opkv_Range","months","totcalls","eqpdays","custcare_Mean","callwait_Mean","iwylis_vce_Mean","callwait_Range","ccrndmou_Range","adjqty","ovrrev_Mean","rev_Mean","ovrmou_Mean","comp_vce_Mean","plcd_vce_Mean","avg3mou","avgmou","avg3qty","avgqty","avg6mou","avg6qty","age1","age2","opk_dat_Mean","roam_Mean","recv_sms_Mean","blck_dat_Mean","mou_pead_Mean","da_Mean","da_Range","datovr_Mean","datovr_Range","drop_dat_Mean","drop_vce_Mean","adjmou","totrev","adjrev","avgrev","Customer_ID")
+numerica=tel2[,telnumeric]
+colnames(numerica)
+
+par(mfrow=c(1,1))
+plot.new()
+
+# Creating Correlation and Multicollinearity Check
+
+corr=cor(numerica)
+
+
+# Adding Customer ID Column to the Numeric Dataset
+
+finnumaeric=numerica[,fincorr]
+finnum=cbind(numerica[,fincorr],CUSID=tel2[,"Customer_ID"])
+
+# Creating categorical Column as a datset Seperately.
+
+categoric=c("income","crclscod","asl_flag","prizm_social_one","refurb_new","hnd_webcap","marital","models","hnd_price","actvsubs","uniqsubs","forgntvl","mtrcycle","truck","churn","retdays1")
+categorica=tel2[,categoric]
+
+# Adding all the Categorical Variables to the Finnum Data and making final Data Set
+
+which(colnames(categorica)=="crclscod")
+
+categoricaaa=categorica[,-2]
+
+ncol(Finalrun)
+
+ncol(telecom)
+
+# *****Final Dataset for glm*****
+
+Finalrun=cbind(numerica,categoricaaa)
+
+# Creating Sample data with Sampling
+
+set.seed(500)
+Finalsampling = sort(sample(nrow(Finalrun), nrow(Finalrun)*.75))
+
+Ftrain=Finalrun[Finalsampling,]
+Ftest=Finalrun[-Finalsampling,]
+
+dim(Finalrun)
+dim(Ftrain)
+dim(Ftest)
+
+# Churn Rate avaiable in dataset train and test and Complete Dataset
+
+table(Finalrun$churn)
+table(Ftrain$churn)
+table(Ftest$churn)
+
+# -----Running glm Model-----
+
+Res=glm(churn~.,family = binomial(link = "logit"),data = Ftrain)
+
+summary(Res)
+
+# Running Step wise Regression
+
+step(glm(churn~.,family=binomial(link = "logit"),data = Ftrain),direction = "both")
+
+# Running glm with Step regression with all variables
+
+res5=glm(formula = churn ~ mou_Mean + totmrc_Mean + mou_Range + drop_vce_Range + 
+           months + eqpdays + custcare_Mean + rev_Mean + ovrmou_Mean + 
+           comp_vce_Mean + avgmou + avg3qty + avgqty + age1 + age2 + 
+           datovr_Range + drop_vce_Mean + adjmou + adjrev + avgrev + 
+           asl_flag + prizm_social_one + refurb_new + hnd_webcap + marital + 
+           models + hnd_price + actvsubs + uniqsubs + retdays1, family = binomial(link = "logit"), 
+         data = Ftrain)
+
+# Summarising the Result
+
+summary(res5)
+
+# Creating Dummy Variables for those having Significant from the Model
+
+Finalrun$prizm_social_oneR=ifelse(Finalrun$prizm_social_one=="R",1,0)
+
+Finalrun$prizm_social_oneT =ifelse(Finalrun$prizm_social_one=="T",1,0)
+
+Finalrun$refurb_newR =ifelse(Finalrun$refurb_new=="R",1,0)
+
+Finalrun$models2 =ifelse(Finalrun$models=="2",1,0)
+
+
+Finalrun$models3 =ifelse(Finalrun$models=="3",1,0)
+
+
+Finalrun$models4 =ifelse(Finalrun$models=="4",1,0)
+
+
+Finalrun$models8 =ifelse(Finalrun$models=="8",1,0)
+
+Finalrun$hnd_price111.285993437193=ifelse(Finalrun$hnd_price=="111.285993437193",1,0)
+
+Finalrun$hnd_price199.9899902=ifelse(Finalrun$hnd_price=="99.9899902",1,0)
+
+Finalrun$hnd_price249.9899902=ifelse(Finalrun$hnd_price=="249.9899902",1,0)
+
+Finalrun$uniqsubs2=ifelse(Finalrun$uniqsubs=="2",1,0)
+
+Finalrun$uniqsubs3=ifelse(Finalrun$uniqsubs=="3",1,0)
+
+Finalrun$uniqsubs4=ifelse(Finalrun$uniqsubs=="4",1,0)
+
+Finalrun$uniqsubs5=ifelse(Finalrun$uniqsubs=="5",1,0)
+
+Finalrun$uniqsubs7=ifelse(Finalrun$uniqsubs=="7",1,0)
+
+Finalrun$uniqsubs8=ifelse(Finalrun$uniqsubs=="8",1,0)
+
+Finalrun$uniqsubs9=ifelse(Finalrun$uniqsubs=="9",1,0)
+
+Finalrun$asl_flagY=ifelse(Finalrun$asl_flag=="Y",1,0)
+
+Finalrun$retdays11=ifelse(Finalrun$retdays1=="1",1,0)
+
+
+
+# -----Running the model with Dummy Variables Creation-----
+
+
+res6=glm(formula = churn ~ mou_Mean + totmrc_Mean + mou_Range + drop_vce_Range + months + eqpdays + custcare_Mean + avgmou + avgqty + age1 + age2 + datovr_Range + drop_vce_Mean + adjrev + avgrev + asl_flagY + 
+         prizm_social_oneR + prizm_social_oneT + refurb_newR  + models2  + models3  + models4 + models8  + hnd_price111.285993437193 + hnd_price199.9899902 + hnd_price249.9899902 + uniqsubs2 + uniqsubs3 + uniqsubs4  + uniqsubs5  + uniqsubs7 + uniqsubs9 + retdays11 , family = binomial(link = "logit"), data = Ftrain1)
+summary(res6)
+
+# -----Again running the glm model by removing the variables which are not significant-----
+
+
+res7=glm(formula = churn ~ mou_Mean + totmrc_Mean + mou_Range + drop_vce_Range + months + eqpdays + custcare_Mean + avgmou + avgqty + age1 + age2 + datovr_Range + drop_vce_Mean + avgrev + asl_flagY + 
+           prizm_social_oneR + prizm_social_oneT + refurb_newR  + models2  + models3  + models4 + models8  + hnd_price111.285993437193  + hnd_price249.9899902 + uniqsubs2 + uniqsubs3 + uniqsubs4  + uniqsubs5   + retdays11 , family = binomial(link = "logit"), data = Ftrain1)
+
+summary(res7)
+
+
+# -----Again running the glm model by removing the variables which are not significant-----
+
+res8=glm(formula = churn ~ mou_Mean + totmrc_Mean + mou_Range + drop_vce_Range + months + eqpdays + custcare_Mean + avgmou + avgqty + age1 + age2  + drop_vce_Mean + avgrev + asl_flagY + 
+           prizm_social_oneR + prizm_social_oneT + refurb_newR  + models2  + models3  + models4   + hnd_price111.285993437193  + hnd_price249.9899902 + uniqsubs2 + uniqsubs3 + uniqsubs4  + uniqsubs5   + retdays11 , family = binomial(link = "logit"), data = Ftrain1)
+
+summary(res8)
+
+# -----Removing the vif values having more than 5.00 in the model and running the glm Model-----
+
+res9=glm(formula = churn ~ mou_Mean + totmrc_Mean + mou_Range + drop_vce_Range + months + eqpdays + custcare_Mean  + avgqty + age1 + age2  + drop_vce_Mean + avgrev + asl_flagY + 
+           prizm_social_oneR + prizm_social_oneT + refurb_newR  + models2  + models3  + models4   + hnd_price111.285993437193  + hnd_price249.9899902 + uniqsubs2 + uniqsubs3 + uniqsubs4  + uniqsubs5   + retdays11 , family = binomial(link = "logit"), data = Ftrain1)
+
+
+summary(res9)
+
+# Checking Multicollinearity Check 
+
+library(car)
+library(irr)
+library(caret)
+library(lattice)
+library(ggplot2)
+library(lpSolve)
+
+vif(res8)
+
+vif(res9)[vif(res9)>2.5]
+
+
+# Finding the Fitted Values ok Model 
+
+head(res9$fitted.values)
+
+predictox=res9$fitted.values
+
+predicted1=ifelse(predictox>=0.22,1,0)
+head(predicted1)
+table(predicted1)
+table(predicted1,Ftrain1$churn)
+cnfmtrx=table(predicted1,Ftrain1$churn)
+cnfmtrx
+
+# Plotting with ROCR Curve in Train Data set
+
+plot.new()
+dev.off()
+library(ROCR)
+roc=prediction(predict(res9,type = "response",newdata = Ftrain1),Ftrain1$churn)
+rocperf=performance(roc,"tpr","fpr")
+plot(rocperf)
+
+# Obtaining the AUC Value fir Train Dataset
+
+abline(a=0,b=1)
+auc=performance(roc,"auc")
+auc=unlist(slot(auc,"y.values"))
+auc
+
+
+abline(a=0,b=1)
+
+
+#Confusion Matrix - Checking for Performance of a Model in Training Dataset
+
+library(caret)
+library(lattice)
+library(ggplot2)
+library(e1071)
+
+confusionMatrix(table(predicted1,Ftrain1$churn),positive = "1")
+
+# The confusion MAtrix shows 4470 correct events and 2719 incorrect events. 
+# And also shows 13991 correct Non-Events and 10888 incorrect Non-Events 
+# The model is doing an ok job
+
+
+
+# Predicting the Probablitites in Test Data set
+
+testpredict=predict(res9,newdata = Ftest1,type = "response")
+testpredict
+
+predtest=ifelse(testpredict>=0.22,1,0)
+
+table(predtest)
+
+table(predtest,Ftest1$churn)
+
+# Kappa Matrix 
+
+kappa=confusionMatrix(table(predtest,Ftest1$churn),positive = "1")
+
+# Plotting ROCR and AUC Value
+
+test=prediction(testpredict,Ftest1$churn)
+roctest=performance(test,"tpr","fpr")
+auctest=performance(test,"auc")
+auctest
+
+auctest=unlist(slot(auctest,"y.values"))
+auctest
+
+plot.new()
+
+
+# ROCR Curve
+
+plot(roctest,col="Blue",main="ROC CURVE")
+
+minauc<-min(round(auctest, digits = 2))
+minauct <- paste(c("(AUC)  = "),minauc,sep="")
+legend(0.3,0.5,c(minauct,"\n"),border="white",cex=1.0,box.col = "Black")
+abline(a=0,b = 1,col="Red")
+min(testpredict)
+max(testpredict)
+hist(testpredict)
+
+# The auc is 0.628 which is more than 0.50. 
+# Also the curve seems to be well above the grey line.
+# So the model seems to be ok and is acceptable.
+
+
+
+# Gains Chart shows that the top 30% of the probabilities contain 32.4% customers that are likely to churn.
+
+
+library(gains)
+gain=gains(as.numeric(Ftest1$churn),predict(res9,type="response",newdata=Ftest1),groups = 10)
+plot(gain)
+
+class(Ftest)
+
+class(Ftest1$churn)
+
+class(Ftest1$churn)
+
+# Checking Confidence Intervals 
+
+confint(res9)
+
+head(sort(abs(res9$coefficients),decreasing = T),500)
+
+# Getting the Beta Coefficient values
+
+res9$coefficients
+
+# VIF Running in the model & Checking For Multicollinearity
+
+library(car)
+library(carData)
+
+vif(res9)
+
+
+table(Ftest1$churn/nrow(Ftest1))
+
+Ftest1$churn/nrow(Ftest1)
+table(Ftrain1$churn/nrow(Ftrain1))
+
+table(Finalrun$churn)/nrow(Finalrun)
+
+vif(res8)[vif(res8)>2.5]
+vif(res9)
+vif(res7)
+
+colSums(is.na(telecom))
+colSums(is.na(tel2))
+
+
+# Quiz Questions and Answers
+
+# Question : 1.What are the top five factors driving likelihood of churn at Mobicom?
+
+# Answer : 
+
+# retdays11 - 0.8741098 
+
+# hnd_price249.9899902 - 0.7370084               
+
+# uniqsubs5 - 0.4758223
+                       
+# asl_flagY - 0.3660424               
+
+# models4 - 0.3034178        
+                 
+# Question  : 2.Validation of survey findings. a) Whether "cost and billing" and 
+# "network and service quality" are important factors influencing churn behaviour.  
+# b) Are data usage connectivity issues turning out to be costly? 
+# In other words, is it leading to churn?
+
+# Answer 2.a) Significant Variables Relevant to the "Cost and Billing" in the model are 
+
+# 1- totmrc_Mean (i.e - Monthly Recurring Charge is the base cost of the calling plan regardless of actual minutes used.)
+# totmrc_Mean -  has beta coefficient value of (-0.0055527761) 
+# Shows that a unit increase in this variable is causing a decrease in churn by 0.0055527761/Unit.
+# 2-  avgrev (i.e - Average monthly revenue over the life of the customer)
+# avgrev - has beta coefficient value of (0.0029170321)
+# Shows that a unit increase in this variable is causing a Increase in churn by 0.0029170321/Unit.
+# 3 - asl_flagY (i.e - Account spending limit)
+# asl_flagY - Account spending limit
+# asl_flagY - has beta coefficient value of (-0.3660423652)
+# Shows that a unit increase in this variable is causing a Decrease in churn by -0.3660423652/Unit.
+
+### Above Variables like totmrc_Mean & avgrev have very low Coefficient value 0.002 to 0.005 which
+### have very less Impact on the Churn Behaviour for " Cost and Billing ".
+
+### The variable asl_flagY have the Coefficient of (-0.3660423652) which have a Huge Negative 
+### Impact on Churn Behaviour for " Cost and Billing ".
+
+
+# Answer 2.a) Significant Variables Relevant to the "Network and Service Quality" in the model are 
+
+# mou_Mean - (-0.0005320851)
+# mou_Range -  0.0003997894
+# drop_vce_Range  - 0.0043018342 
+# custcare_Mean - (-0.0132259816)
+# avgqty - 0.0008865125 
+# drop_vce_Mean -  0.0064079075
+# retdays11 - 0.8741097924 
+
+### From the above variables for "Network and Service Quality" Except the Retdays11 all the variables having 
+### the coefficient value reanging from 0.0003 to 0.01 which shows the impact on Churn Behaviour is Very Low
+
+### Only the retdays11 Variable having coefficient value of 0.8741097924 having huge Impact on Churn Behaviour
+
+# Question : 2.b) Are data usage connectivity issues turning out to be costly? 
+# In other words, is it leading to churn?
+
+### Answer : 2.b) No, data usage connectivity is not the issue 
+### which is turning out to be costly nor leading to churn.
+
+
+# Question : 3) Would you recommend rate plan migration as a proactive retention strategy?
+# Answer : 3) Yes,  asl_flagY variable having the coefficient -0.3660423652
+# Shows that a unit increase in this variable is causing a Decrease in churn by -0.3660423652/Unit.
+# Means that the asl_flag with accound spending Limit Yes are Staying without changing the
+# Rate Plan Migration and I would suggest the Mobicom to Maintain the asl_flag Yes for the 
+# Customers in order to maintain the Retention Strategy Without changing the Migration Plan.
+
+# Question : 4) What would be your recommendation on how to use this churn model for prioritisation of customers 
+# for a proactive retention campaigns in the future?
+
+library(gains)
+gain=gains(as.numeric(Ftest1$churn),predict(res9,type="response",newdata=Ftest1),groups = 10)
+
+# the Gains Chart shows that the top 30% of the probabilities 
+# contain 32.4% customers that are highly likely to churn.
+
+# Selecting Customers with high churn rate
+
+Ftest1$prob<-predict(res9,type="response",newdata=Ftest1)
+quantile(Ftest1$prob,probs =c(0.10,0.20,0.30,0.40,0.50,0.60,0.70,0.80,0.90,1))
+
+#Top 30% of the probabilities lie between  0.2780473 and 0.9612452 
+
+# Applying cutoff value to predict customers who Will Churn
+
+pred4<-predict(res9, type="response", newdata=Ftest1)
+pred4<-ifelse(pred4>=0.2780473 , 1, 0)
+table(pred4,Ftest1$churn)
+
+Targeted<-Ftest1[Ftest1$prob>0.2780473 & Ftest1$prob<=0.9612452 & Ftest1$churn=="1","Customer_ID"]
+Targeted<-as.data.frame(Targeted)
+nrow(Targeted)
+
+nrow(Ftest1)
+write.csv(Targeted,"Target_Customers.csv",row.names = F)
+
+# Question : 5) What would be the target segments for proactive retention campaigns? 
+# Falling ARPU forecast is also a concern and therefore, Mobicom would like to save their 
+# high revenue customers besides managing churn. Given a budget constraint of a contact list of 20% 
+# of the subscriber pool, which subscribers should prioritized if “revenue saves” is also a 
+# priority besides controlling churn. In other words, controlling churn is the primary objective 
+# and revenue saves is the secondary objective.
+
+
+
+# Answer : 5) The Higher Reveneue levels and Targeted Customers are :
+
+pred5<-predict(res9, type="response", newdata=Ftest1)
+Ftest1$prob<-predict(res9,type="response",newdata=Ftest1)
+quantile(Ftest1$prob,prob=c(0.10,0.20,0.30,0.40,0.50,0.60,0.70,0.80,0.90,1))
+pred6<-ifelse(pred5<0.20,"Low_Score",ifelse(pred5>=0.20 & pred5<0.30,"Medium_Score","High_Score"))
+table(pred6,Ftest1$churn)
+
+str(Ftest1$totrev)
+quantile(Ftest1$totrev,prob=c(0.10,0.20,0.30,0.40,0.50,0.60,0.70,0.80,0.90,1))
+Revenue_Levels<-ifelse(Ftest1$totrev<493.46,"Low_Revenue",ifelse(Ftest1$totrev>=493.7 & 
+                                                                  Ftest1$totrev<1029.0,"Medium_Revenue","High_Revenue"))
+min(Ftest1$totrev)
+max(Ftest1$totrev)
+
+
+table(Revenue_Levels)
+
+table(pred6,Revenue_Levels)
+
+
+summary(Ftest1$totrev)
+
+
+Ftest1$prob_levels<-ifelse(pred5<0.20,"Low_Score",ifelse(pred5>=0.20 & pred5<0.30,"Medium_Score","High_Score"))
+Ftest1$Revenue_Levels<-ifelse(Ftest1$totrev<493.7,"Low_Revenue",ifelse(Ftest1$totrev>=493.7 & 
+                                                                       Ftest1$totrev<1029.0,"Medium_Revenue","High_Revenue"))
+
+Targeted1<-Ftest1[Ftest1$prob_levels=="High_Score" & Ftest1$Revenue_Levels=="High_Revenue","Customer_ID"]
+Targeted1<-as.data.frame(Targeted1)
+nrow(Targeted1)
+
+write.csv(Targeted1,"High_Revenue_Target_Customers.csv",row.names = F)
+
+
+# From the Result "High_Revenue_Target_Customers" 728 Customers were Target Customers.Those are the Customers
+# For Which Mobicom is having High Revenue from them and I suggest to Provide some Customer
+# Retenetion Campaigns to those Customers who are likely willing to Churn from Mobicom.
+
+
